@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Secrets\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.6" />
+  </ItemGroup>
+
+    <ItemGroup>
+	    <ProjectReference Include="..\GoogleDriveCLIManager.Domain\GoogleDriveCLIManager.Domain.csproj" />
+	    <ProjectReference Include="..\GoogleDriveCLIManager.Infrastructure\GoogleDriveCLIManager.Infrastructure.csproj" />
+		<ProjectReference Include="..\GoogleDriveCLIManager.Application\GoogleDriveCLIManager.Application.csproj" />
+		<ProjectReference Include="..\GoogleDriveCLIManager.Presentation\GoogleDriveCLIManager.Presentation.csproj" />
+    </ItemGroup>
+
+</Project>

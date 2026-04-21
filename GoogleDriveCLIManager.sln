@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35828.75 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleDriveCLIManager", "GoogleDriveCLIManager\GoogleDriveCLIManager.csproj", "{C86EAE10-6F4D-46F2-9313-0FADE6EA097D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleDriveCLIManager.Domain", "GoogleDriveCLIManager.Domain\GoogleDriveCLIManager.Domain.csproj", "{E9A8B40B-3AA4-4EAD-901D-227B768C568A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleDriveCLIManager.Application", "GoogleDriveCLIManager.Application\GoogleDriveCLIManager.Application.csproj", "{F036B610-1C0F-4859-B88E-6D6F0E84BFB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleDriveCLIManager.Infrastructure", "GoogleDriveCLIManager.Infrastructure\GoogleDriveCLIManager.Infrastructure.csproj", "{D465E33B-D4CE-4483-A6AB-095C2F3D769E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleDriveCLIManager.Presentation", "GoogleDriveCLIManager.Presentation\GoogleDriveCLIManager.Presentation.csproj", "{3C586C1B-AC4C-43D4-821F-6A6F58E562AB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C86EAE10-6F4D-46F2-9313-0FADE6EA097D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C86EAE10-6F4D-46F2-9313-0FADE6EA097D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C86EAE10-6F4D-46F2-9313-0FADE6EA097D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C86EAE10-6F4D-46F2-9313-0FADE6EA097D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9A8B40B-3AA4-4EAD-901D-227B768C568A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9A8B40B-3AA4-4EAD-901D-227B768C568A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9A8B40B-3AA4-4EAD-901D-227B768C568A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9A8B40B-3AA4-4EAD-901D-227B768C568A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F036B610-1C0F-4859-B88E-6D6F0E84BFB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F036B610-1C0F-4859-B88E-6D6F0E84BFB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F036B610-1C0F-4859-B88E-6D6F0E84BFB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F036B610-1C0F-4859-B88E-6D6F0E84BFB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D465E33B-D4CE-4483-A6AB-095C2F3D769E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D465E33B-D4CE-4483-A6AB-095C2F3D769E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D465E33B-D4CE-4483-A6AB-095C2F3D769E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D465E33B-D4CE-4483-A6AB-095C2F3D769E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C586C1B-AC4C-43D4-821F-6A6F58E562AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C586C1B-AC4C-43D4-821F-6A6F58E562AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C586C1B-AC4C-43D4-821F-6A6F58E562AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C586C1B-AC4C-43D4-821F-6A6F58E562AB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {28157A10-F98F-4E8E-A972-C6B30A9123B4}
+	EndGlobalSection
+EndGlobal
