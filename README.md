@@ -49,6 +49,30 @@ GoogleDriveCLIManager/
 └── Program.cs
 ```
 
+## Application Configuration (`appsettings.json`)
+
+The CLI's behavior can be fine-tuned without recompiling the code by editing the `appsettings.json` file located in the root directory.
+
+```json
+{
+  "SyncSettings": {
+    "MaxParallelDownloads": 5,
+    "RetryCount": 3,
+    "RetryDelaySeconds": 2
+    // "DefaultDownloadPath": "C:\\MyCustomSyncFolder"
+  }
+}
+```
+#### Configuration Options:
+
+-   **`MaxParallelDownloads`**: Controls how many files the `sync` command will attempt to download simultaneously. _Note: Setting this too high may trigger Google Drive API rate limits._
+    
+-   **`RetryCount`**: The number of times the Polly resilience engine will attempt to retry a failed API call before marking the file as a failed download.
+    
+-   **`RetryDelaySeconds`**: The base delay for the exponential backoff strategy between retries.
+    
+-   **`DefaultDownloadPath`**: By default, the CLI syncs files to your machine's `User\Downloads\GoogleDriveRoot` folder. To force a specific global path, uncomment this line and provide an absolute path.
+
 ## Publishing as a Standalone `.exe`
 
 To run this application as a true desktop tool without needing Visual Studio, you can publish it into a self-contained executable.
