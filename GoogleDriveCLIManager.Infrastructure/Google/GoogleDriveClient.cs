@@ -19,24 +19,31 @@ public class GoogleDriveClient : IGoogleDriveClient
         _retryPolicyWrapper = retryPolicyWrapper;
     }
 
-    public async Task DownloadFileAsStreamAsync(string fileId, Stream destinationStream, CancellationToken cancellationToken = default)
+    public async Task DownloadFileAsStreamAsync(DriveFileItem file, Stream destinationStream, CancellationToken cancellationToken = default)
     {
         var driveService = await _googleInternalAuthenticator
             .GetDriveServiceAsync(cancellationToken);
 
-        var request = driveService.Files.Get(fileId);
+        await _retryPolicyWrapper.ExecuteAsync(async () =>
+        {
+            global::Google.Apis.Download.IDownloadProgress status;
 
-        await _retryPolicyWrapper
-            .ExecuteAsync(async () =>
+            if (file.IsGoogleWorkspaceFile)
             {
-                var status = await request
-                    .DownloadAsync(destinationStream, cancellationToken);
+                var exportRequest = driveService.Files.Export(file.Id, file.GetExportMimeType());
+                status = await exportRequest.DownloadAsync(destinationStream, cancellationToken);
+            }
+            else
+            {
+                var getRequest = driveService.Files.Get(file.Id);
+                status = await getRequest.DownloadAsync(destinationStream, cancellationToken);
+            }
 
-                if (status.Status == global::Google.Apis.Download.DownloadStatus.Failed)
-                {
-                    throw new Exception($"Google API Download Failed: {status.Exception?.Message}");
-                }
-            });
+            if (status.Status == global::Google.Apis.Download.DownloadStatus.Failed)
+            {
+                throw new Exception($"Google API Download/Export Failed: {status.Exception?.Message}");
+            }
+        });
     }
 
     public async Task<IReadOnlyList<DriveFileItem>> GetAllItemsAsync(string? searchQuery = null, CancellationToken cancellationToken = default)
@@ -165,7 +172,6 @@ public class GoogleDriveClient : IGoogleDriveClient
     private DriveFileItem MapToDomain(GoogleFile googleFile, string fullCloudPath)
     {
         bool isFolder = googleFile.MimeType == FolderMimeType;
-
         FileSize? fileSize = googleFile.Size.HasValue ? FileSize.Create(googleFile.Size.Value) : null;
         Checksum? checksum = !string.IsNullOrWhiteSpace(googleFile.Md5Checksum) ? Checksum.Create(googleFile.Md5Checksum) : null;
 
@@ -173,6 +179,7 @@ public class GoogleDriveClient : IGoogleDriveClient
         {
             Id = googleFile.Id ?? string.Empty,
             Name = googleFile.Name ?? string.Empty,
+            MimeType = googleFile.MimeType ?? string.Empty, // <--- Add this line
             IsFolder = isFolder,
             SizeBytes = fileSize,
             Md5Checksum = checksum,

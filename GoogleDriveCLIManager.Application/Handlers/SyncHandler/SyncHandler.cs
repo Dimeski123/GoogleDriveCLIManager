@@ -101,16 +101,16 @@ public class SyncHandler
         {
             var savePath = Path.Combine(activeDirectory, file.FullCloudPath);
 
-            try
+            if (file.IsGoogleWorkspaceFile && !savePath.EndsWith(file.GetExportExtension(), StringComparison.OrdinalIgnoreCase))
             {
-                using var fileStream = _localFileSystem
-                    .CreateFileStream(savePath);
-
-                await _googleDriveClient
-                    .DownloadFileAsStreamAsync(
-                        file.Id, 
-                        fileStream, 
-                        token);
+                savePath += file.GetExportExtension();
+            }
+        try
+            {
+                await using (var fileStream = _localFileSystem.CreateFileStream(savePath))
+                {
+                    await _googleDriveClient.DownloadFileAsStreamAsync(file, fileStream, token);
+                }
 
                 stats.RecordSuccess(file.SizeBytes?.Bytes ?? 0);
 
