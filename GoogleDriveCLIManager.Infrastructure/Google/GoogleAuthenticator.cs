@@ -16,6 +16,18 @@ public class GoogleAuthenticator : IGoogleAuthenticator, IGoogleInternalAuthenti
 
     public async Task<DriveService> GetDriveServiceAsync(CancellationToken cancellationToken = default)
     {
+        if (!File.Exists(_credentialsPath))
+        {
+            throw new FileNotFoundException(
+                "Missing Google Credentials.\n" +
+                "  [grey]You must provide your own OAuth client secret to use this tool.[/]\n" +
+                "  [grey]1. Go to the Google Cloud Console.[/]\n" +
+                "  [grey]2. Download your OAuth 2.0 Client ID as a JSON file.[/]\n" +
+                $"  [grey]3. Rename it to[/] [bold white]client_secret.json[/] [grey]and place it here:[/]\n" +
+                $"  [yellow]{_credentialsPath}[/]"
+            );
+        }
+
         if (_cachedDriveService != null)
             return _cachedDriveService;
 
@@ -34,7 +46,7 @@ public class GoogleAuthenticator : IGoogleAuthenticator, IGoogleInternalAuthenti
         {
             credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
                 GoogleClientSecrets.FromStream(stream).Secrets,
-                new[] { DriveService.Scope.Drive }, // Request full Drive access
+                new[] { DriveService.Scope.Drive },
                 "user",
                 cancellationToken,
                 new FileDataStore(_tokenDirectory, true));
@@ -60,8 +72,19 @@ public class GoogleAuthenticator : IGoogleAuthenticator, IGoogleInternalAuthenti
         var aboutRequest = service.About.Get();
         aboutRequest.Fields = "user/emailAddress";
 
-        var aboutResponse = await aboutRequest.ExecuteAsync(cancellationToken);
+        var aboutResponse = await aboutRequest
+            .ExecuteAsync(cancellationToken);
 
         return aboutResponse.User.EmailAddress ?? "Unknown User";
+    }
+
+    public Task LogoutAsync(CancellationToken cancellationToken = default)
+    {
+        if (Directory.Exists(_tokenDirectory))
+        {
+            Directory.Delete(_tokenDirectory, true);
+        }
+
+        return Task.CompletedTask;
     }
 }

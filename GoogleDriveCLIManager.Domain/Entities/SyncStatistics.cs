@@ -20,6 +20,8 @@ public class SyncStatistics
     public int SuccessfulDownloads => _successfulDownloads;
     public int FailedDownloads => _failedDownloads;
     public long DownloadedBytes => Interlocked.Read(ref _downloadedBytes);
+    public int DeletedFiles { get; private set; }
+    public void RecordDeleted() => DeletedFiles++;
     public TimeSpan TotalTime => _stopwatch.Elapsed;
     public IReadOnlyCollection<string> Errors => _errors.ToArray();
 

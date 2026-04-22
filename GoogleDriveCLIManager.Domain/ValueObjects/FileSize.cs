@@ -1,7 +1,10 @@
-﻿namespace GoogleDriveCLIManager.Domain.ValueObjects;
+﻿using System.Text.Json.Serialization;
+
+namespace GoogleDriveCLIManager.Domain.ValueObjects;
 
 public record FileSize
 {
+    [JsonConstructor]
     private FileSize(long bytes)
     {
         Bytes = bytes;

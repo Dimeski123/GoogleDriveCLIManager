@@ -2,6 +2,6 @@
 
 public record UploadCommand(
     string LocalFilePath,
-    string? TargetCloudFolderId = null)
+    string? TargetCloudPath = null)
 {
 }

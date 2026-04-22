@@ -29,7 +29,8 @@ public class GoogleDriveClient : IGoogleDriveClient
         await _retryPolicyWrapper
             .ExecuteAsync(async () =>
             {
-                var status = await request.DownloadAsync(destinationStream, cancellationToken);
+                var status = await request
+                    .DownloadAsync(destinationStream, cancellationToken);
 
                 if (status.Status == global::Google.Apis.Download.DownloadStatus.Failed)
                 {
@@ -40,9 +41,10 @@ public class GoogleDriveClient : IGoogleDriveClient
 
     public async Task<IReadOnlyList<DriveFileItem>> GetAllItemsAsync(string? searchQuery = null, CancellationToken cancellationToken = default)
     {
-        var driveService = await _googleInternalAuthenticator.GetDriveServiceAsync(cancellationToken);
+        var driveService = await _googleInternalAuthenticator
+            .GetDriveServiceAsync(cancellationToken);
 
-        var result = new List<DriveFileItem>();
+        var allRawFiles = new List<GoogleFile>();
         string? pageToken = null;
 
         do
@@ -58,33 +60,42 @@ public class GoogleDriveClient : IGoogleDriveClient
             }
             request.Q = string.Join(" and ", queryParts);
 
-            // Use the wrapper to safely fetch the response
             var response = await _retryPolicyWrapper.ExecuteAsync(async () =>
                 await request.ExecuteAsync(cancellationToken)
             );
 
             if (response.Files != null)
             {
-                foreach (var googleFile in response.Files)
-                {
-                    result.Add(MapToDomain(googleFile));
-                }
+                allRawFiles.AddRange(response.Files);
             }
 
             pageToken = response.NextPageToken;
 
         } while (pageToken != null);
 
+        var fileLookup = allRawFiles.ToDictionary(f => f.Id, f => f);
+        var result = new List<DriveFileItem>();
+
+        foreach (var rawFile in allRawFiles)
+        {
+            string fullPath = await BuildFullPathAsync(rawFile, fileLookup, driveService, cancellationToken);
+            result.Add(MapToDomain(rawFile, fullPath));
+        }
+
         return result;
     }
 
     public async Task<DriveFileItem> UploadFileAsync(Stream fileStream, string fileName, string? parentFolderId = null, CancellationToken cancellationToken = default)
     {
-        var driveService = await _googleInternalAuthenticator.GetDriveServiceAsync(cancellationToken);
+        var driveService = await _googleInternalAuthenticator
+            .GetDriveServiceAsync(cancellationToken);
 
-        var fileMetadata = new GoogleFile()
+        var fileMetadata = new GoogleFile
         {
-            Name = fileName
+            Name = fileName,
+            Parents = !string.IsNullOrWhiteSpace(parentFolderId)
+                  ? new List<string> { parentFolderId }
+                  : null
         };
 
         if (!string.IsNullOrWhiteSpace(parentFolderId))
@@ -106,14 +117,55 @@ public class GoogleDriveClient : IGoogleDriveClient
             throw new Exception($"Google API Upload Failed: {progress.Exception?.Message}");
         }
 
-        return MapToDomain(request.ResponseBody);
+        return MapToDomain(request.ResponseBody, fileName);
+    }
+    public async Task<string> GetOrCreateFolderByPathAsync(string folderPath, CancellationToken token)
+    {
+        var driveService = await _googleInternalAuthenticator
+            .GetDriveServiceAsync(token);
+
+        var parts = folderPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+
+        string parentId = "root";
+
+        foreach (var part in parts)
+        {
+            var query = $"name = '{part}' and mimeType = 'application/vnd.google-apps.folder' and '{parentId}' in parents and trashed = false";
+            var request = driveService.Files.List();
+            request.Q = query;
+            request.Fields = "files(id, name)";
+
+            var response = await request.ExecuteAsync(token);
+            var folder = response.Files.FirstOrDefault();
+
+            if (folder != null)
+            {
+                parentId = folder.Id;
+            }
+            else
+            {
+                var newFolderMetadata = new GoogleFile
+                {
+                    Name = part,
+                    MimeType = "application/vnd.google-apps.folder",
+                    Parents = new List<string> { parentId }
+                };
+
+                var createRequest = driveService.Files.Create(newFolderMetadata);
+                createRequest.Fields = "id";
+                var newFolder = await createRequest.ExecuteAsync(token);
+
+                parentId = newFolder.Id;
+            }
+        }
+
+        return parentId;
     }
 
-    private DriveFileItem MapToDomain(GoogleFile googleFile)
+    private DriveFileItem MapToDomain(GoogleFile googleFile, string fullCloudPath)
     {
         bool isFolder = googleFile.MimeType == FolderMimeType;
 
-        // Safely handle our Value Objects
         FileSize? fileSize = googleFile.Size.HasValue ? FileSize.Create(googleFile.Size.Value) : null;
         Checksum? checksum = !string.IsNullOrWhiteSpace(googleFile.Md5Checksum) ? Checksum.Create(googleFile.Md5Checksum) : null;
 
@@ -125,7 +177,52 @@ public class GoogleDriveClient : IGoogleDriveClient
             SizeBytes = fileSize,
             Md5Checksum = checksum,
             ModifiedTimeUtc = googleFile.ModifiedTime?.ToUniversalTime(),
-            Parents = googleFile.Parents?.ToArray() ?? Array.Empty<string>()
+            Parents = googleFile.Parents?.ToArray() ?? Array.Empty<string>(),
+            FullCloudPath = fullCloudPath
         };
+    }
+
+    private async Task<string> BuildFullPathAsync(GoogleFile currentFile, Dictionary<string, GoogleFile> lookup, DriveService driveService, CancellationToken cancellationToken)
+    {
+        var pathParts = new List<string> { currentFile.Name };
+        var current = currentFile;
+
+        while (current.Parents != null && current.Parents.Count > 0)
+        {
+            string parentId = current.Parents[0];
+
+            if (lookup.TryGetValue(parentId, out var parentFile))
+            {
+                pathParts.Insert(0, parentFile.Name);
+                current = parentFile;
+            }
+            else
+            {
+                try
+                {
+                    var request = driveService.Files.Get(parentId);
+                    request.Fields = "id, name, parents";
+
+                    var fallbackParent = await _retryPolicyWrapper.ExecuteAsync(async () =>
+                        await request.ExecuteAsync(cancellationToken)
+                    );
+
+                    if (fallbackParent.Parents == null || fallbackParent.Parents.Count == 0)
+                    {
+                        break;
+                    }
+
+                    pathParts.Insert(0, fallbackParent.Name);
+                    current = fallbackParent;
+                    lookup[parentId] = fallbackParent;
+                }
+                catch
+                {
+                    break;
+                }
+            }
+        }
+
+        return string.Join("/", pathParts);
     }
 }

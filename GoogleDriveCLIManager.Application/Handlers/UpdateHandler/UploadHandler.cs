@@ -19,6 +19,7 @@ public class UploadHandler
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
+        // Checks for the files localy
         if (!_localFileSystem.FileExists(command.LocalFilePath))
         {
             stopwatch.Stop();
@@ -37,8 +38,17 @@ public class UploadHandler
         long bytes = _localFileSystem.GetFileSizeBytes(command.LocalFilePath);
         var fileSize = FileSize.Create(bytes);
 
+        // It Creates/Checks if it exists the folder structure, and sends the file for Upload to Google Drive API
         try
         {
+            string? finalFolderId = null;
+
+            if (!string.IsNullOrWhiteSpace(command.TargetCloudPath))
+            {
+                finalFolderId = await _googleDriveClient
+                    .GetOrCreateFolderByPathAsync(command.TargetCloudPath, cancellationToken);
+            }
+
             using var fileStream = _localFileSystem
                 .OpenReadStream(command.LocalFilePath);
 
@@ -46,7 +56,7 @@ public class UploadHandler
                 .UploadFileAsync(
                     fileStream,
                     fileName,
-                    command.TargetCloudFolderId,
+                    finalFolderId,
                     cancellationToken
                 );
 
@@ -65,7 +75,6 @@ public class UploadHandler
         {
             stopwatch.Stop();
 
-            // 5. Return failure safely
             return new UploadResultDto(
                 FileName: fileName,
                 CloudFileId: string.Empty,

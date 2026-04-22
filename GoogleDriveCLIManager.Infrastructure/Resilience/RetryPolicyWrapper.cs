@@ -11,7 +11,6 @@ public class RetryPolicyWrapper : IRetryPolicyWrapper
     private readonly AsyncRetryPolicy _retryPolicy;
     public RetryPolicyWrapper(IOptions<SyncOptions> options)
     {
-        // Configure Polly exactly once here!
         _retryPolicy = Policy
             .Handle<Exception>()
             .WaitAndRetryAsync(

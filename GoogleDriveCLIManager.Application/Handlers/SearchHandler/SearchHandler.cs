@@ -22,16 +22,20 @@ public class SearchHandler
     }
     public async Task<IReadOnlyList<SearchResultDto>> HandleAsync(SearchCommand command, CancellationToken cancellationToken)
     {
+        // activeDirectory is variable used to check if the user has inserted target directory
         string activeDirectory = string.IsNullOrWhiteSpace(command.TargetDirectory)
             ? _options.DefaultDownloadPath
             : command.TargetDirectory;
 
-        var cloudFiles = await _googleDriveClient.GetAllItemsAsync(command.SearchTerm, cancellationToken);
+        // Gets all Items from Google Drive that fullfill the "contains [query]" term
+        var cloudFiles = await _googleDriveClient
+            .GetAllItemsAsync(command.SearchTerm, cancellationToken);
 
         var manifestEntries = await _manifestRepository.LoadManifestAsync(cancellationToken);
 
         var results = new List<SearchResultDto>();
 
+        // Checks each file if it exists, if it is up to date and if it doesn't exist, generating appropriate response
         foreach (var file in cloudFiles)
         {
             string statusText = "-";
@@ -57,7 +61,6 @@ public class SearchHandler
                 }
             }
 
-            // 4. Map to DTO
             results.Add(new SearchResultDto(
                 Id: file.Id,
                 Name: file.Name,
@@ -71,17 +74,3 @@ public class SearchHandler
 
         return results;
     }
-
-
-
-    //var domainFiles = await _googleDriveClient.GetAllItemsAsync(query.SearchTerm, cancellationToken);
-
-    //var result = domainFiles.Select(file => new SearchResultDto(
-    //        Id: file.Id,
-    //        Name: file.Name,
-    //        IsFolder: file.IsFolder,
-    //        FormattedSize: file.SizeBytes?.ToString() ?? "-", 
-    //        ModifiedTimeUtc: file.ModifiedTimeUtc,
-    //        FullCloudPath: file.FullCloudPath
-    //    )).ToList();
-}

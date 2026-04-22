@@ -30,6 +30,7 @@ public class SyncHandler
         var stats = new SyncStatistics();
         stats.StartTimer();
 
+        // activeDirectory is variable used to check if the user has inserted target directory
         string activeDirectory = string.IsNullOrWhiteSpace(command.TargetDirectory)
             ? _options.DefaultDownloadPath
             : command.TargetDirectory;
@@ -37,8 +38,25 @@ public class SyncHandler
         _localFileSystem.CreateDirectory(activeDirectory);
 
         // Fetching the Manifest and the items from Google
-        var manifestEntries = await _manifestRepository.LoadManifestAsync(cancellationToken);
-        var cloudFiles = await _googleDriveClient.GetAllItemsAsync(null, cancellationToken);
+        var manifestEntries = await _manifestRepository
+            .LoadManifestAsync(cancellationToken);
+
+        var cloudFiles = await _googleDriveClient
+            .GetAllItemsAsync(null, cancellationToken);
+
+        var currentCloudIds = cloudFiles.Select(c => c.Id).ToHashSet();
+
+        foreach (var receipt in manifestEntries.Values)
+        {
+            if (!currentCloudIds.Contains(receipt.DriveFileId))
+            {
+                if (_localFileSystem.FileExists(receipt.LocalPath))
+                {
+                    _localFileSystem.DeleteFile(receipt.LocalPath);
+                    stats.RecordDeleted();
+                }
+            }
+        }
 
         var updatedManifest = new ConcurrentDictionary<string, Manifest>(StringComparer.OrdinalIgnoreCase);
         var downloadPlans = new List<DriveFileItem>();
@@ -47,7 +65,7 @@ public class SyncHandler
         // adding the Files to the Queue
         foreach (var cloudFile in cloudFiles)
         {
-            var expectedLocalPath = Path.Combine(command.TargetDirectory, cloudFile.FullCloudPath);
+            var expectedLocalPath = Path.Combine(activeDirectory, cloudFile.FullCloudPath);
 
             if (cloudFile.IsFolder)
             {
@@ -72,8 +90,7 @@ public class SyncHandler
                 downloadPlans.Add(cloudFile);
             }
         }
-
-        // 5. THE PARALLEL ENGINE
+        // Parallel Engine that download the files from the Cloud
         var parallelOptions = new ParallelOptions
         {
             MaxDegreeOfParallelism = _options.MaxParallelDownloads,
@@ -82,13 +99,18 @@ public class SyncHandler
 
         await Parallel.ForEachAsync(downloadPlans, parallelOptions, async (file, token) =>
         {
-            var savePath = Path.Combine(command.TargetDirectory, file.FullCloudPath);
+            var savePath = Path.Combine(activeDirectory, file.FullCloudPath);
 
             try
             {
-                using var fileStream = _localFileSystem.CreateFileStream(savePath);
+                using var fileStream = _localFileSystem
+                    .CreateFileStream(savePath);
 
-                await _googleDriveClient.DownloadFileAsStreamAsync(file.Id, fileStream, token);
+                await _googleDriveClient
+                    .DownloadFileAsStreamAsync(
+                        file.Id, 
+                        fileStream, 
+                        token);
 
                 stats.RecordSuccess(file.SizeBytes?.Bytes ?? 0);
 
@@ -115,6 +137,7 @@ public class SyncHandler
             stats.SkippedUpToDate,
             stats.SuccessfulDownloads,
             stats.FailedDownloads,
+            stats.DeletedFiles,
             totalSize.ToString(),
             stats.TotalTime,
             stats.Errors

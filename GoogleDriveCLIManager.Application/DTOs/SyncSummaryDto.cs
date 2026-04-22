@@ -6,6 +6,7 @@ public record SyncSummaryDto(
     int SkippedUpToDate,
     int SuccessfulDownloads,
     int FailedDownloads,
+    int DeletedLocalFiles,
     string DownloadedSizeFormatted,
     TimeSpan TotalTime,
     IReadOnlyCollection<string> Errors);
